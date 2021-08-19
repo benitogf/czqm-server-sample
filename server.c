@@ -2,20 +2,29 @@
 #include <czmq.h>
 
 static bool keepRunning = true;
-zsock_t *serverPULL;
-zsock_t *serverPUSH;
+static zsock_t *serverPULL;
+static zsock_t *serverPUSH;
+static const char ECHO[] = " from server";
 
 void intHandler(int dummy) {
-    puts ("bye bye.");
+    puts("bye bye.");
     zctx_interrupted = 1;
     zsys_interrupted = 1;
-    zsock_destroy  (&serverPULL);
-    zsock_destroy  (&serverPUSH);
+    zsock_destroy(&serverPULL);
+    zsock_destroy(&serverPUSH);
     keepRunning = 0;
 }
 
-int main (void)
-{
+char* newReply(char *msg) {
+    char *reply = malloc(sizeof(char) * strlen(msg) + sizeof(char) * strlen(ECHO) + 1);
+    if (reply == NULL) {
+        puts ("failed to allocate.");
+        return NULL;
+    }
+    return reply;
+}
+
+int main (void) {
     // https://github.com/zeromq/goczmq/issues/46#issuecomment-59521223
     // prevent the sighandler override
     setenv ("ZSYS_SIGHANDLER", "false", 1);
@@ -29,21 +38,21 @@ int main (void)
     
     puts ("listening.");
     while (keepRunning) {
-        char *msg = zstr_recv (serverPULL);
-        if (msg != NULL) {
-            puts (msg);
-            // this doesn't work:
-            // strcpy(msg, " from server");
-            // zstr_send (serverPUSH, msg);
-            
-            // this does:
-            char *reply = malloc (sizeof(char) * strlen(msg) + sizeof(char) * 11 + 1);
-            strcpy(reply, msg);
-            strcat(reply, " from server");
-            zstr_send (serverPUSH, reply);
-            free(reply);
+        char *msg = zstr_recv(serverPULL);
+        if (msg == NULL) {
+            continue;
         }
-        zstr_free (&msg);
+        puts (msg);
+        char *reply = newReply(msg);
+        if (reply == NULL) {
+            puts ("failed to allocate.");
+            continue;
+        }
+        strcpy(reply, msg);
+        strcat(reply, ECHO);
+        zstr_send(serverPUSH, reply);
+        free(reply);
+        zstr_free(&msg);
     }
 
     return 0;

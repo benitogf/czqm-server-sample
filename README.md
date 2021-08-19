@@ -4,7 +4,11 @@
 
 there are some examples here: https://github.com/zeromq/czmq/tree/master/examples/security
 
-this one deals with starting a server (push/pull) and a client(push/pull) to allow bidirectional messaging
+this one deals with starting a server that allows bidirectional messaging with clients
+
+# requirements
+
+https://zeromq.org/languages/c/
 
 # build
 
